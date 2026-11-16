@@ -8,6 +8,7 @@ import (
 type VesselRepository interface {
 	Create(*Vessel) error
 	GetByID(uuid.UUID) (*Vessel, error)
+	GetByIMO(string) (*Vessel, error)
 	List() ([]Vessel, error)
 	Update(*Vessel) error
 	Delete(uuid.UUID) error
@@ -28,6 +29,14 @@ func (vr vesselRepository) Create(v *Vessel) error {
 func (vr vesselRepository) GetByID(id uuid.UUID) (*Vessel, error) {
 	var v Vessel
 	result := vr.db.Where("id = ?", id).First(&v)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return &v, nil
+}
+func (vr vesselRepository) GetByIMO(imo string) (*Vessel, error) {
+	var v Vessel
+	result := vr.db.Where("imo = ?", imo).First(&v)
 	if result.Error != nil {
 		return nil, result.Error
 	}
