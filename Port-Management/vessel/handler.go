@@ -35,3 +35,13 @@ func (vh vesselHandler) Register(w http.ResponseWriter, req *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(vessel)
 }
+func (vh vesselHandler) List(w http.ResponseWriter, req *http.Request) {
+	vessels, err := vh.service.ListVessels()
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(vessels)
+}

@@ -27,4 +27,5 @@ func main() {
 	vesselHandler := vessel.NewVesselHandler(vesselService)
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/vessels", vesselHandler.Register)
+	mux.HandleFunc("GET /api/vessels", vesselHandler.List)
 }

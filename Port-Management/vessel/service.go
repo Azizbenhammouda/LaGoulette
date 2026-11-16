@@ -2,6 +2,7 @@ package vessel
 
 import (
 	"errors"
+	"time"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -16,11 +17,20 @@ type RegisterInput struct {
 	Name string `json:"name"`
 	Flag string `json:"flag"`
 }
+type RequestUpdate struct {
+	Name       *string    `json:"name,omitempty"`
+	Status     *bool      `json:"status,omitempty"`
+	Flag       *string    `json:"flag,omitempty"`
+	VesselType *string    `json:"vessel_type,omitempty"`
+	Arrival    *time.Time `json:"arrival,omitempty"`
+	Departure  *time.Time `json:"departure,omitempty"`
+}
 type VesselService interface {
 	Register(RegisterInput) (*Vessel, error)
 	GetVessel(uuid.UUID) (*Vessel, error)
 	ListVessels() ([]Vessel, error)
 	Delete(uuid.UUID) error
+	Update(uuid.UUID, RequestUpdate) error
 }
 type vesselService struct {
 	repo VesselRepository
@@ -69,6 +79,37 @@ func (vs vesselService) Delete(id uuid.UUID) error {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return ErrVesselNotFound
 		}
+		return err
+	}
+	return nil
+}
+func (vs vesselService) Update(id uuid.UUID, req RequestUpdate) error {
+	v, err := vs.repo.GetByID(id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ErrVesselNotFound
+		}
+		return err
+	}
+	if req.Name != nil {
+		v.Name = *req.Name
+	}
+	if req.Flag != nil {
+		v.Flag = *req.Flag
+	}
+	if req.Status != nil {
+		v.Status = *req.Status
+	}
+	if req.VesselType != nil {
+		v.VesselType = *req.VesselType
+	}
+	if req.Departure != nil {
+		v.Departure = *req.Departure
+	}
+	if req.Arrival != nil {
+		v.Arrival = *req.Arrival
+	}
+	if err := vs.repo.Update(v); err != nil {
 		return err
 	}
 	return nil
