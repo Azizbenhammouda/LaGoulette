@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+
+	"github.com/google/uuid"
 )
 
 type vesselHandler struct {
@@ -44,4 +46,25 @@ func (vh vesselHandler) List(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(vessels)
+}
+func (vh vesselHandler) GetVessel(w http.ResponseWriter, req *http.Request) {
+	idStr := req.PathValue("id")
+	vesselID, err := uuid.Parse(idStr)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	v, err := vh.service.GetVessel(vesselID)
+	if err != nil {
+		if errors.Is(err, ErrVesselNotFound) {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		} else {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(v)
 }
