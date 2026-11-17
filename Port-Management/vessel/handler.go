@@ -68,3 +68,46 @@ func (vh vesselHandler) GetVessel(w http.ResponseWriter, req *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(v)
 }
+func (vh vesselHandler) Update(w http.ResponseWriter, req *http.Request) {
+	var up RequestUpdate
+	idStr := req.PathValue("id")
+	vesselID, err := uuid.Parse(idStr)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	if err := json.NewDecoder(req.Body).Decode(&up); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	err = vh.service.Update(vesselID, up)
+	if err != nil {
+		if errors.Is(err, ErrVesselNotFound) {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		} else {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+	}
+	w.WriteHeader(http.StatusOK)
+}
+func (vh vesselHandler) Delete(w http.ResponseWriter, req *http.Request) {
+	idStr := req.PathValue("id")
+	vesselID, err := uuid.Parse(idStr)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	err = vh.service.Delete(vesselID)
+	if err != nil {
+		if errors.Is(err, ErrVesselNotFound) {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		} else {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+	}
+	w.WriteHeader(http.StatusOK)
+}

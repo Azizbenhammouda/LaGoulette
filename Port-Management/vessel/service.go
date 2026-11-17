@@ -13,9 +13,10 @@ var ErrVesselNotFound = errors.New("vessel not found")
 var ErrVesselExists = errors.New("vessel is already in the port")
 
 type RegisterInput struct {
-	IMO  string `json:"imo"`
-	Name string `json:"name"`
-	Flag string `json:"flag"`
+	IMO        string `json:"imo"`
+	Name       string `json:"name"`
+	Flag       string `json:"flag"`
+	VesselType string `json:"vessel_type"`
 }
 type RequestUpdate struct {
 	Name       *string    `json:"name,omitempty"`
@@ -49,10 +50,14 @@ func (vs vesselService) Register(input RegisterInput) (*Vessel, error) {
 	if existingVessel != nil {
 		return nil, ErrVesselExists
 	}
+	arriv := time.Now()
 	v := Vessel{
-		IMO:  input.IMO,
-		Name: input.Name,
-		Flag: input.Flag,
+		IMO:        input.IMO,
+		Name:       input.Name,
+		Flag:       input.Flag,
+		VesselType: input.VesselType,
+		Status:     true,
+		Arrival:    &arriv,
 	}
 	err = vs.repo.Create(&v)
 	if err != nil {
@@ -104,10 +109,10 @@ func (vs vesselService) Update(id uuid.UUID, req RequestUpdate) error {
 		v.VesselType = *req.VesselType
 	}
 	if req.Departure != nil {
-		v.Departure = *req.Departure
+		v.Departure = req.Departure
 	}
 	if req.Arrival != nil {
-		v.Arrival = *req.Arrival
+		v.Arrival = req.Arrival
 	}
 	if err := vs.repo.Update(v); err != nil {
 		return err
