@@ -28,4 +28,7 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/vessels", vesselHandler.Register)
 	mux.HandleFunc("GET /api/vessels", vesselHandler.List)
+	mux.HandleFunc("GET /api/vessels/{id}", vesselHandler.GetVessel)
+	mux.HandleFunc("PATCH /api/vessels/{id}", vesselHandler.Update)
+	mux.HandleFunc("DELETE /api/vessels/{id}", vesselHandler.Delete)
 }
