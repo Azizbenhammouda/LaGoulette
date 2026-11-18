@@ -6,5 +6,5 @@ type Berth struct {
 	ID       uuid.UUID `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
 	Name     string    `json:"name" gorm:"unique;not null"`
 	Terminal string    `json:"terminal"`
-	Status   bool      `json:"status"` //available occupied maintenance
+	Status   string    `json:"status"`
 }
