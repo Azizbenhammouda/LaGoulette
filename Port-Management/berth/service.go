@@ -8,20 +8,14 @@ import (
 )
 
 var (
-	ErrBerthOccupied     = errors.New("berth is not reserved")
 	ErrBerthNotAvailable = errors.New("berth is not available")
 	ErrBerthNotFound     = errors.New("berth does not exist")
 )
 
-type ReserveInput struct {
-	Name     string `json:"name"`
-	Terminal string `json:"terminal"`
-}
-
 type BerthService interface {
 	List() ([]Berth, error)
 	ListAvailable() ([]Berth, error)
-	ReserveBerth(ReserveInput) (*Berth, error)
+	ReserveBerth(string) (*Berth, error)
 	GetReserve(uuid.UUID) (*Berth, error)
 }
 
@@ -43,20 +37,20 @@ func (bs berthService) ListAvailable() ([]Berth, error) {
 	return bs.repo.ListByStatus("available")
 }
 
-func (bs berthService) ReserveBerth(ri ReserveInput) (*Berth, error) {
-	b, err := bs.repo.GetByName(ri.Name)
+func (bs berthService) ReserveBerth(name string) (*Berth, error) {
+	_, err := bs.repo.GetByName(name)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, ErrBerthNotFound
 		}
 		return nil, err
 	}
-	if b.Status != "available" {
-		return nil, ErrBerthNotAvailable
-	}
-	b.Status = "occupied"
-	if err := bs.repo.Update(b); err != nil {
+	b, reserved, err := bs.repo.Reserve(name)
+	if err != nil {
 		return nil, err
+	}
+	if !reserved {
+		return nil, ErrBerthNotAvailable
 	}
 	return b, nil
 }
@@ -70,7 +64,7 @@ func (bs berthService) GetReserve(id uuid.UUID) (*Berth, error) {
 		return nil, err
 	}
 	if b.Status != "occupied" {
-		return nil, ErrBerthOccupied
+		return nil, ErrBerthNotAvailable
 	}
 	return b, nil
 }

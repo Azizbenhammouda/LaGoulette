@@ -13,6 +13,7 @@ type BerthRepository interface {
 	GetByID(uuid.UUID) (*Berth, error)
 	GetByName(string) (*Berth, error)
 	ListByStatus(string) ([]Berth, error)
+	Reserve(string) (*Berth, bool, error)
 }
 
 type berthRepository struct {
@@ -75,4 +76,22 @@ func (br berthRepository) Delete(id uuid.UUID) error {
 		return gorm.ErrRecordNotFound
 	}
 	return nil
+}
+func (br berthRepository) Reserve(name string) (*Berth, bool, error) {
+	result := br.db.Model(&Berth{}).
+		Where("name = ? AND status = ?", name, "available").
+		Update("status", "occupied")
+
+	if result.Error != nil {
+		return nil, false, result.Error
+	}
+	if result.RowsAffected == 0 {
+		return nil, false, nil
+	}
+
+	b, err := br.GetByName(name)
+	if err != nil {
+		return nil, false, err
+	}
+	return b, true, nil
 }

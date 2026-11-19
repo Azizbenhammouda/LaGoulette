@@ -41,7 +41,7 @@ func (bh berthHandler) ListAvailable(w http.ResponseWriter, req *http.Request) {
 }
 
 func (bh berthHandler) ReserveBerth(w http.ResponseWriter, req *http.Request) {
-	var input ReserveInput
+	var input string
 	if err := json.NewDecoder(req.Body).Decode(&input); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
@@ -75,7 +75,7 @@ func (bh berthHandler) GetReserve(w http.ResponseWriter, req *http.Request) {
 		switch {
 		case errors.Is(err, ErrBerthNotFound):
 			http.Error(w, err.Error(), http.StatusNotFound)
-		case errors.Is(err, ErrBerthOccupied):
+		case errors.Is(err, ErrBerthNotAvailable):
 			http.Error(w, err.Error(), http.StatusConflict)
 		default:
 			http.Error(w, "Failed to retrieve reservation", http.StatusInternalServerError)
