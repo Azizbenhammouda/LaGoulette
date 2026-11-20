@@ -1,0 +1,23 @@
+server:
+  listen_addr: ":8080"
+  read_header_timeout: 5s
+  read_timeout: 5s
+  write_timeout: 10s
+  idle_timeout: 60s
+
+routes:
+- prefix: /api/users
+  upstream: http://localhost:9001
+  protocol: rest
+
+- prefix: /graphql
+  upstream: http://localhost:9002
+  protocol: graphql
+
+- prefix: /soap/billing
+  upstream: http://localhost:9003
+  protocol: soap
+
+- prefix: /grpc/orders
+  upstream: localhost:9004
+  protocol: grpc
