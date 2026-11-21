@@ -3,6 +3,7 @@ package main
 import (
 	"api-gateway/config"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 )
@@ -24,6 +25,7 @@ func main() {
 		IdleTimeout:       cfg.Server.IdleTimeout,
 		Handler:           mux,
 	}
+	fmt.Println("gateway running..")
 	err = s.ListenAndServe()
 	if err != nil {
 		if errors.Is(err, http.ErrServerClosed) {
