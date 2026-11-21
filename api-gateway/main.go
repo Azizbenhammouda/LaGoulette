@@ -11,16 +11,11 @@ func healthHandler(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 func main() {
-	mux := http.NewServeMux()
-	mux.HandleFunc("GET /healthz", healthHandler)
 	cfg, err := config.Load("config.yaml")
 	if err != nil {
 		log.Fatalf("load config: %v", err)
 	}
-	err = cfg.Validate()
-	if err != nil {
-		log.Fatalf("validate config: %v ", err)
-	}
+	mux := NewRouter(cfg)
 	s := &http.Server{
 		Addr:              cfg.Server.ListenAddr,
 		ReadHeaderTimeout: cfg.Server.ReadHeaderTimeout,

@@ -1,13 +1,21 @@
 package config
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"strings"
 	"time"
 
 	"gopkg.in/yaml.v3"
+)
+
+type Protocol string
+
+const (
+	ProtocolREST    Protocol = "rest"
+	ProtocolGraphQL Protocol = "graphql"
+	ProtocolGRPC    Protocol = "grpc"
+	ProtocolSOAP    Protocol = "soap"
 )
 
 type ServerConfig struct {
@@ -18,9 +26,9 @@ type ServerConfig struct {
 	IdleTimeout       time.Duration `yaml:"idle_timeout"`
 }
 type Route struct {
-	Prefix   string `yaml:"prefix"`
-	Upstream string `yaml:"upstream"`
-	Protocol string `yaml:"protocol"`
+	Prefix   string   `yaml:"prefix"`
+	Upstream string   `yaml:"upstream"`
+	Protocol Protocol `yaml:"protocol"`
 }
 type Config struct {
 	Server ServerConfig `yaml:"server"`
@@ -37,33 +45,46 @@ func Load(path string) (*Config, error) {
 	if err != nil {
 		return nil, fmt.Errorf("parsing file: %w", err)
 	}
+	if err := cfg.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid config: %w", err)
+	}
 	return &cfg, nil
 }
 
 func (c *Config) Validate() error {
-	if c.Server.ReadHeaderTimeout <= 0 || c.Server.ReadTimeout <= 0 || c.Server.WriteTimeout <= 0 || c.Server.IdleTimeout <= 0 {
-		return errors.New("timeouts are invalid")
+	if c.Server.ReadHeaderTimeout <= 0 {
+		return fmt.Errorf("read header timeout must be > 0")
+	}
+	if c.Server.ReadTimeout <= 0 {
+		return fmt.Errorf("read timeout must be > 0")
+	}
+	if c.Server.WriteTimeout <= 0 {
+		return fmt.Errorf("write timeout must be > 0")
+	}
+	if c.Server.IdleTimeout <= 0 {
+		return fmt.Errorf("idle timeout must be > 0")
 	}
 	if c.Server.ListenAddr == "" {
-		return errors.New("listen address is empty")
+		return fmt.Errorf("listen address is empty")
 	}
-	for _, value := range c.Routes {
-		if value.Prefix == "" {
-			return fmt.Errorf("route prefix cannot be empty")
+
+	for i, route := range c.Routes {
+		if route.Prefix == "" {
+			return fmt.Errorf("route[%d]: prefix cannot be empty ", i)
 		}
 
-		if !strings.HasPrefix(value.Prefix, "/") {
-			return fmt.Errorf("route prefix must start with /")
+		if !strings.HasPrefix(route.Prefix, "/") {
+			return fmt.Errorf("route[%d] :prefix must start with /", i)
 		}
 
-		if value.Upstream == "" {
-			return fmt.Errorf("route upstream cannot be empty")
+		if route.Upstream == "" {
+			return fmt.Errorf("route[%d] :upstream cannot be empty", i)
 		}
 
-		switch value.Protocol {
-		case "rest", "graphql", "soap", "grpc":
+		switch route.Protocol {
+		case ProtocolREST, ProtocolGraphQL, ProtocolSOAP, ProtocolGRPC:
 		default:
-			return fmt.Errorf("unsupported protocol: %s", value.Protocol)
+			return fmt.Errorf("route[%d] :unsupported protocol: %q", i, route.Protocol)
 		}
 	}
 	return nil
