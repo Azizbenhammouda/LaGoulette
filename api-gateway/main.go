@@ -16,7 +16,10 @@ func main() {
 	if err != nil {
 		log.Fatalf("load config: %v", err)
 	}
-	mux := NewRouter(cfg)
+	mux, err := NewRouter(cfg)
+	if err != nil {
+		log.Fatalf("starting proxy: %v", err)
+	}
 	s := &http.Server{
 		Addr:              cfg.Server.ListenAddr,
 		ReadHeaderTimeout: cfg.Server.ReadHeaderTimeout,
