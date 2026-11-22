@@ -2,10 +2,12 @@ package main
 
 import (
 	"api-gateway/config"
+	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"strings"
+	"time"
 )
 
 // waqt fama handler for /api/users/, w yji request for /api/users,
@@ -22,7 +24,7 @@ func NewRouter(cfg *config.Config) (http.Handler, error) {
 		if !strings.HasSuffix(prefix, "/") {
 			prefix += "/"
 		}
-		proxy, err := NewProxy(route.Upstream)
+		proxy, err := NewProxy(route)
 		if err != nil {
 			return nil, err
 		}
@@ -31,12 +33,22 @@ func NewRouter(cfg *config.Config) (http.Handler, error) {
 
 	return mux, nil
 }
-func NewProxy(upstream string) (*httputil.ReverseProxy, error) {
-	targeturl, err := url.Parse(upstream)
+func NewProxy(cfr config.Route) (*httputil.ReverseProxy, error) {
+	targeturl, err := url.Parse(cfr.Upstream)
 	if err != nil {
 		return nil, err
 	}
+	transport := &http.Transport{
+		// time to wait to establish a tcp connection
+		DialContext: (&net.Dialer{
+			Timeout: time.Second * 5,
+		}).DialContext,
+		// time to wait for the upstream response header to arrive
+		ResponseHeaderTimeout: cfr.ResponseHeaderTimeout,
+	}
 	Reverse := &httputil.ReverseProxy{
+		// rewrite concept el global ybdel el request eli jaya ml client
+		//  w el proxy yebaath request jdida
 		Rewrite: func(pr *httputil.ProxyRequest) {
 			pr.SetURL(targeturl) // bch nbadel el url eli jey ml request li targeturl
 			// zada yzid el path
@@ -47,6 +59,7 @@ func NewProxy(upstream string) (*httputil.ReverseProxy, error) {
 			pr.SetXForwarded() //make sure the services recieve the actual clients Ip
 			// the host the client originally asked for and weather its http or https
 		},
+		Transport: transport,
 	}
 	return Reverse, nil
 }

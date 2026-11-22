@@ -26,9 +26,10 @@ type ServerConfig struct {
 	IdleTimeout       time.Duration `yaml:"idle_timeout"`
 }
 type Route struct {
-	Prefix   string   `yaml:"prefix"`
-	Upstream string   `yaml:"upstream"`
-	Protocol Protocol `yaml:"protocol"`
+	Prefix                string        `yaml:"prefix"`
+	Upstream              string        `yaml:"upstream"`
+	Protocol              Protocol      `yaml:"protocol"`
+	ResponseHeaderTimeout time.Duration `yaml:"response_header_timeout"`
 }
 type Config struct {
 	Server ServerConfig `yaml:"server"`
@@ -85,6 +86,9 @@ func (c *Config) Validate() error {
 		case ProtocolREST, ProtocolGraphQL, ProtocolSOAP, ProtocolGRPC:
 		default:
 			return fmt.Errorf("route[%d] :unsupported protocol: %q", i, route.Protocol)
+		}
+		if route.ResponseHeaderTimeout <= 0 {
+			return fmt.Errorf("route[%d]: response_header_timeout must be > 0", i)
 		}
 	}
 	return nil
