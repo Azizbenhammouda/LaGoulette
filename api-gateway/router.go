@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-// When a subtree handler exists for /api/users/, and a request arrives for /api/users,
+// waqt fama handler for /api/users/, w yji request for /api/users,
 //
 //	it automatically redirects the request to /api/users/.
 //
@@ -38,12 +38,14 @@ func NewProxy(upstream string) (*httputil.ReverseProxy, error) {
 	}
 	Reverse := &httputil.ReverseProxy{
 		Rewrite: func(pr *httputil.ProxyRequest) {
-			pr.SetURL(targeturl)         // bch nbadel el url eli jey ml request li targeturl
+			pr.SetURL(targeturl) // bch nbadel el url eli jey ml request li targeturl
+			// zada yzid el path
 			pr.Out.Host = targeturl.Host // bch badel el host eli jey ml request yabda
 			//  el host howa el apigateway bch nabdlou li el service
 			// normalement setUrl deja ybdel el host header lil host mtaa target url
 			// zdtha just be sure
-
+			pr.SetXForwarded() //make sure the services recieve the actual clients Ip
+			// the host the client originally asked for and weather its http or https
 		},
 	}
 	return Reverse, nil
