@@ -9,5 +9,5 @@ type Container struct {
 	ContainerNumber string    `json:"container_number" gorm:"unique"`
 	VesselID        uuid.UUID `json:"vessel_id"`
 	CargoType       string    `json:"cargo_type"`
-	Status          string    `json:"status"` //// EXPECTED, UNLOADED, STORED, COLLECTED
+	Status          string    `json:"status"` // EXPECTED, UNLOADED, STORED, COLLECTED
 }
