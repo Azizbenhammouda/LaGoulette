@@ -89,9 +89,15 @@ func (cs containerService) UpdateContainer(id uuid.UUID, up UpdateContainerInput
 			return err
 		}
 	}
-	c.CargoType = *up.CargoType
-	c.VesselID = *up.VesselID
-	c.Status = *up.Status
+	if up.CargoType != nil {
+		c.CargoType = *up.CargoType
+	}
+	if up.VesselID != nil {
+		c.VesselID = *up.VesselID
+	}
+	if up.Status != nil {
+		c.Status = *up.Status
+	}
 	err = cs.repo.Update(c)
 	if err != nil {
 		return err

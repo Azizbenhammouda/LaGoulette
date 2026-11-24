@@ -76,7 +76,7 @@ func (cr containerRepository) Delete(id uuid.UUID) error {
 }
 func (cr containerRepository) List() ([]Container, error) {
 	var cs []Container
-	res := cr.db.Find(cs)
+	res := cr.db.Find(&cs)
 	if res.Error != nil {
 		return nil, res.Error
 	}
