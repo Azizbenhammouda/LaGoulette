@@ -111,3 +111,32 @@ func (ch containerHandler) UpdateContainer(w http.ResponseWriter, req *http.Requ
 	}
 	w.WriteHeader(http.StatusOK)
 }
+func (ch containerHandler) SearchContainers(w http.ResponseWriter, req *http.Request) {
+	query := req.URL.Query()
+	status := query.Get("status")
+	cargotype := query.Get("cargo_type")
+	idstr := query.Get("vessel_id")
+	vesselid, err := uuid.Parse(idstr)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	filter := ContainerFilter{}
+	if status != "" {
+		filter.Status = &status
+	}
+	if cargotype != "" {
+		filter.CargoType = &cargotype
+	}
+	if vesselid != uuid.Nil {
+		filter.VesselID = &vesselid
+	}
+	cons, err := ch.service.SearchContainers(filter)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(cons)
+}

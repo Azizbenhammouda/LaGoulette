@@ -14,15 +14,21 @@ type ContainerRepository interface {
 	Create(*Container) error
 	GetByID(id uuid.UUID) (*Container, error)
 	GetByNumber(number string) (*Container, error)
-	List(filter ContainerFilter) ([]Container, error)
+	List() ([]Container, error)
+	ListContainers(filter ContainerFilter) ([]Container, error)
 	Update(*Container) error
 	UpdateStatus(id, status string) error
-	Delete(id string) error
+	Delete(id uuid.UUID) error
 }
 type containerRepository struct {
 	db *gorm.DB
 }
 
+func NewContainerRepository(db *gorm.DB) ContainerRepository {
+	return containerRepository{
+		db: db,
+	}
+}
 func (cr containerRepository) Create(c *Container) error {
 	return cr.db.Create(c).Error
 }
@@ -68,7 +74,15 @@ func (cr containerRepository) Delete(id uuid.UUID) error {
 	}
 	return nil
 }
-func (cr containerRepository) List(filter ContainerFilter) ([]Container, error) {
+func (cr containerRepository) List() ([]Container, error) {
+	var cs []Container
+	res := cr.db.Find(cs)
+	if res.Error != nil {
+		return nil, res.Error
+	}
+	return cs, nil
+}
+func (cr containerRepository) ListContainers(filter ContainerFilter) ([]Container, error) {
 	var cs []Container
 	query := cr.db.Model(&Container{})
 	if filter.Status != nil {
