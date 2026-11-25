@@ -17,7 +17,7 @@ type ContainerRepository interface {
 	List() ([]Container, error)
 	ListContainers(filter ContainerFilter) ([]Container, error)
 	Update(*Container) error
-	UpdateStatus(id, status string) error
+	UpdateStatus(id uuid.UUID, status string) error
 	Delete(id uuid.UUID) error
 }
 type containerRepository struct {
@@ -52,7 +52,7 @@ func (cr containerRepository) GetByNumber(num string) (*Container, error) {
 func (cr containerRepository) Update(c *Container) error {
 	return cr.db.Save(c).Error
 }
-func (cr containerRepository) UpdateStatus(id, status string) error {
+func (cr containerRepository) UpdateStatus(id uuid.UUID, status string) error {
 	result := cr.db.Model(&Container{}).
 		Where("id = ?", id).
 		Update("status", status)
@@ -86,13 +86,13 @@ func (cr containerRepository) ListContainers(filter ContainerFilter) ([]Containe
 	var cs []Container
 	query := cr.db.Model(&Container{})
 	if filter.Status != nil {
-		query = query.Where("status = ?", filter.Status)
+		query = query.Where("status = ?", *filter.Status)
 	}
 	if filter.CargoType != nil {
-		query = query.Where("cargo_type = ?", filter.CargoType)
+		query = query.Where("cargo_type = ?", *filter.CargoType)
 	}
 	if filter.VesselID != nil {
-		query = query.Where("vessel_id = ?", filter.VesselID)
+		query = query.Where("vessel_id = ?", *filter.VesselID)
 	}
 	result := query.Find(&cs)
 	if result.Error != nil {

@@ -7,21 +7,38 @@ import (
 	"gorm.io/gorm"
 )
 
+const (
+	StatusExpected  = "EXPECTED"
+	StatusUnloaded  = "UNLOADED"
+	StatusStored    = "STORED"
+	StatusCollected = "COLLECTED"
+)
+
 var (
 	ErrContainerExists   = errors.New("container already exists")
 	ErrContainerNotFound = errors.New("container not found")
+	ErrInvalidInput      = errors.New("invalid input")
+	ErrInvalidTransition = errors.New("invalid status transition")
+	ErrCannotDelete      = errors.New("only expected containers can be deleted")
 )
+
+var allowedTransitions = map[string]string{
+	StatusExpected: StatusUnloaded,
+	StatusUnloaded: StatusStored,
+	StatusStored:   StatusCollected,
+}
 
 type RegisterContainerInput struct {
 	CargoType       string    `json:"cargo_type"`
 	VesselID        uuid.UUID `json:"vessel_id"`
 	ContainerNumber string    `json:"container_number"`
-	Status          string    `json:"status"`
 }
 type UpdateContainerInput struct {
 	VesselID  *uuid.UUID `json:"vessel_id"`
 	CargoType *string    `json:"cargo_type"`
-	Status    *string    `json:"status"`
+}
+type ChangeStatusInput struct {
+	Status string `json:"status"`
 }
 type ContainerService interface {
 	RegisterContainer(RegisterContainerInput) (*Container, error)
@@ -29,6 +46,7 @@ type ContainerService interface {
 	ListContainers() ([]Container, error)
 	SearchContainers(ContainerFilter) ([]Container, error)
 	UpdateContainer(uuid.UUID, UpdateContainerInput) error
+	ChangeStatus(uuid.UUID, string) error
 	DeleteContainer(uuid.UUID) error
 }
 type containerService struct {
@@ -41,7 +59,18 @@ func NewContainerService(repo ContainerRepository) ContainerService {
 	}
 }
 
+func validCargoType(t string) bool {
+	switch t {
+	case "GENERAL", "REEFER", "HAZARDOUS", "BULK":
+		return true
+	}
+	return false
+}
+
 func (cs containerService) RegisterContainer(ri RegisterContainerInput) (*Container, error) {
+	if ri.ContainerNumber == "" || ri.VesselID == uuid.Nil || !validCargoType(ri.CargoType) {
+		return nil, ErrInvalidInput
+	}
 	c, err := cs.repo.GetByNumber(ri.ContainerNumber)
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
@@ -53,7 +82,7 @@ func (cs containerService) RegisterContainer(ri RegisterContainerInput) (*Contai
 		ContainerNumber: ri.ContainerNumber,
 		VesselID:        ri.VesselID,
 		CargoType:       ri.CargoType,
-		Status:          ri.Status,
+		Status:          StatusExpected,
 	}
 	err = cs.repo.Create(&con)
 	if err != nil {
@@ -90,13 +119,16 @@ func (cs containerService) UpdateContainer(id uuid.UUID, up UpdateContainerInput
 		}
 	}
 	if up.CargoType != nil {
+		if !validCargoType(*up.CargoType) {
+			return ErrInvalidInput
+		}
 		c.CargoType = *up.CargoType
 	}
 	if up.VesselID != nil {
+		if *up.VesselID == uuid.Nil {
+			return ErrInvalidInput
+		}
 		c.VesselID = *up.VesselID
-	}
-	if up.Status != nil {
-		c.Status = *up.Status
 	}
 	err = cs.repo.Update(c)
 	if err != nil {
@@ -104,14 +136,32 @@ func (cs containerService) UpdateContainer(id uuid.UUID, up UpdateContainerInput
 	}
 	return nil
 }
-func (cs containerService) DeleteContainer(id uuid.UUID) error {
-	_, err := cs.repo.GetByID(id)
+func (cs containerService) ChangeStatus(id uuid.UUID, newStatus string) error {
+	c, err := cs.repo.GetByID(id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return ErrContainerNotFound
 		} else {
 			return err
 		}
+	}
+	next, ok := allowedTransitions[c.Status]
+	if !ok || next != newStatus {
+		return ErrInvalidTransition
+	}
+	return cs.repo.UpdateStatus(id, newStatus)
+}
+func (cs containerService) DeleteContainer(id uuid.UUID) error {
+	c, err := cs.repo.GetByID(id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ErrContainerNotFound
+		} else {
+			return err
+		}
+	}
+	if c.Status != StatusExpected {
+		return ErrCannotDelete
 	}
 	err = cs.repo.Delete(id)
 	return err
